@@ -94,6 +94,32 @@ static UINT8 nfa_dm_get_rf_discover_config (tNFA_DM_DISC_TECH_PROTO_MASK dm_disc
     {
         dm_disc_mask &= ~NFA_DM_DISC_MASK_NFC_DEP;
     }
+/* START [16052901S] - Change listen tech mask values */
+    if (nfa_dm_cb.flags & NFA_DM_FLAGS_LISTEN_CHANGED)
+    {
+        NFA_TRACE_DEBUG1 ("nfa_dm_get_rf_discover_config () listen changed, rm listen from 0x%x", dm_disc_mask);
+        dm_disc_mask &= NFA_DM_DISC_MASK_POLL;
+
+        if(nfa_dm_cb.listen_mask & NFC_LISTEN_A) {
+            dm_disc_mask |= ( NFA_DM_DISC_MASK_LA_T1T
+                    |NFA_DM_DISC_MASK_LA_T2T
+                    |NFA_DM_DISC_MASK_LA_ISO_DEP
+                    |NFA_DM_DISC_MASK_LA_NFC_DEP);
+        }
+        if(nfa_dm_cb.listen_mask & NFC_LISTEN_B) {
+            dm_disc_mask |= NFA_DM_DISC_MASK_LB_ISO_DEP;
+        }
+        if(nfa_dm_cb.listen_mask & NFC_LISTEN_F) {
+            dm_disc_mask |= (NFA_DM_DISC_MASK_LF_T3T|NFA_DM_DISC_MASK_LF_NFC_DEP);
+        }
+        if(nfa_dm_cb.listen_mask & NFC_LISTEN_A_ACTIVE) {
+            dm_disc_mask |= NFA_DM_DISC_MASK_LAA_NFC_DEP;
+        }
+        if(nfa_dm_cb.listen_mask & NFC_LISTEN_F_ACTIVE) {
+            dm_disc_mask |= NFA_DM_DISC_MASK_LFA_NFC_DEP;
+        }
+    }
+/* END [16052901S] - Change listen tech mask values */
 
     /* Check polling A */
     if (dm_disc_mask & ( NFA_DM_DISC_MASK_PA_T1T
@@ -342,6 +368,12 @@ static tNFA_STATUS nfa_dm_set_rf_listen_mode_config (tNFA_DM_DISC_TECH_PROTO_MAS
     }
     else /* Let NFCC use UICC configuration by configuring with length = 0 */
     {
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S15032301] */
+        UINT8_TO_STREAM (p, NFC_PMID_LA_SEL_INFO);
+        UINT8_TO_STREAM (p, NCI_PARAM_LEN_LA_SEL_INFO);
+        UINT8_TO_STREAM (p, sens_info);
+#else
         UINT8_TO_STREAM (p, NFC_PMID_LA_BIT_FRAME_SDD);
         UINT8_TO_STREAM (p, 0);
         UINT8_TO_STREAM (p, NFC_PMID_LA_PLATFORM_CONFIG);
@@ -352,6 +384,7 @@ static tNFA_STATUS nfa_dm_set_rf_listen_mode_config (tNFA_DM_DISC_TECH_PROTO_MAS
         UINT8_TO_STREAM (p, 0);
         UINT8_TO_STREAM (p, NFC_PMID_LA_HIST_BY);
         UINT8_TO_STREAM (p, 0);
+#endif
     }
 
     /* for Listen B */
@@ -370,8 +403,14 @@ static tNFA_STATUS nfa_dm_set_rf_listen_mode_config (tNFA_DM_DISC_TECH_PROTO_MAS
     }
     else /* Let NFCC use UICC configuration by configuring with length = 0 */
     {
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S15032301] */
+        UINT8_TO_STREAM (p, NFC_PMID_LB_SENSB_INFO);
+        UINT8_TO_STREAM (p, NCI_PARAM_LEN_LB_SENSB_INFO);
+        UINT8_TO_STREAM (p, NCI_LISTEN_PROTOCOL_ISO_DEP);
+#else
         UINT8_TO_STREAM (p, NFC_PMID_LB_SENSB_INFO);
         UINT8_TO_STREAM (p, 0);
+#endif
         UINT8_TO_STREAM (p, NFC_PMID_LB_NFCID0);
         UINT8_TO_STREAM (p, 0);
         UINT8_TO_STREAM (p, NFC_PMID_LB_APPDATA);
@@ -1286,6 +1325,22 @@ static tNFA_STATUS nfa_dm_disc_notify_activation (tNFC_DISCOVER *p_data)
                 return (NFA_STATUS_OK);
             }
         }
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802-1] */
+        if(NFC_PROTOCOL_CLT == protocol)
+        {
+            nfa_dm_cb.disc_cb.activated_tech_mode    = tech_n_mode;
+            nfa_dm_cb.disc_cb.activated_rf_disc_id   = p_data->activate.rf_disc_id;
+            nfa_dm_cb.disc_cb.activated_rf_interface = p_data->activate.intf_param.type;
+            nfa_dm_cb.disc_cb.activated_protocol     = NFC_PROTOCOL_UNKNOWN;
+            nfa_dm_cb.disc_cb.activated_handle       = NFA_HANDLE_INVALID;
+
+            if (nfa_dm_cb.disc_cb.excl_disc_entry.p_disc_cback)
+                (*(nfa_dm_cb.disc_cb.excl_disc_entry.p_disc_cback)) (NFA_DM_RF_DISC_ACTIVATED_EVT, p_data);
+
+                return (NFA_STATUS_OK);
+        }
+#endif
+
         return (NFA_STATUS_FAILED);
     }
 
@@ -2396,6 +2451,14 @@ static void nfa_dm_disc_sm_listen_active (tNFA_DM_RF_DISC_SM_EVENT event,
         nfa_dm_send_deactivate_cmd(p_data->deactivate_type);
         break;
     case NFA_DM_RF_DEACTIVATE_RSP:
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111811] */
+        if (p_data->nfc_discover.status != NCI_STATUS_OK)
+        {
+            nfa_dm_cb.disc_cb.disc_flags &= ~(NFA_DM_DISC_FLAGS_W4_RSP|NFA_DM_DISC_FLAGS_W4_NTF);
+            nfa_dm_send_deactivate_cmd(NFA_DEACTIVATE_TYPE_IDLE);
+            break;
+        }
+#endif
         nfa_dm_cb.disc_cb.disc_flags &= ~NFA_DM_DISC_FLAGS_W4_RSP;
         if (!(nfa_dm_cb.disc_cb.disc_flags & NFA_DM_DISC_FLAGS_W4_NTF))
         {

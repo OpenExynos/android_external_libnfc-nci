@@ -125,6 +125,9 @@ typedef UINT8 tNFA_TECHNOLOGY_MASK;
 #define NFA_PROTOCOL_B_PRIME    NFC_PROTOCOL_B_PRIME
 #define NFA_PROTOCOL_KOVIO      NFC_PROTOCOL_KOVIO
 #define NFA_PROTOCOL_MIFARE     NFC_PROTOCOL_MIFARE
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802-1] */
+#define NFA_PROTOCOL_CLT     NFC_PROTOCOL_CLT
+#endif
 #define NFA_PROTOCOL_INVALID    0xFF
 #define NFA_MAX_NUM_PROTOCOLS   8
 typedef UINT8 tNFA_NFC_PROTOCOL;
@@ -147,6 +150,10 @@ typedef UINT8 tNFA_PROTOCOL_MASK;
 #define NFA_DM_RF_FIELD_EVT	            5   /* Status of RF Field               */
 #define NFA_DM_NFCC_TIMEOUT_EVT         6   /* NFCC is not responding           */
 #define NFA_DM_NFCC_TRANSPORT_ERR_EVT   7   /* NCI Tranport error               */
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+#define NFA_DM_FIRMWARE_DOWNLOAD_STATUS_NOTIFY_EVT       101 /* Firmware Download Status*/
+#endif
 
 #define NFA_T1T_HR_LEN              T1T_HR_LEN      /* T1T HR length            */
 #define NFA_MAX_UID_LEN             TAG_MAX_UID_LEN /* Max UID length of T1/T2  */
@@ -259,6 +266,7 @@ typedef void (tNFA_DM_CBACK) (UINT8 event, tNFA_DM_CBACK_DATA *p_data);
 #define NFA_LISTEN_DISABLED_EVT                 37  /* Listening disabled event                     */
 #define NFA_P2P_PAUSED_EVT                      38  /* P2P services paused event                    */
 #define NFA_P2P_RESUMED_EVT                     39  /* P2P services resumed event                   */
+#define NFA_LISTEN_CHANGED_EVT                 40  /* Listening disabled event                     */
 
 /* NFC deactivation type */
 #define NFA_DEACTIVATE_TYPE_IDLE        NFC_DEACTIVATE_TYPE_IDLE
@@ -331,6 +339,9 @@ typedef struct
     UINT32              max_size;           /* max number of bytes available for NDEF data              */
     UINT32              cur_size;           /* current size of stored NDEF data (in bytes)              */
     tNFA_RW_NDEF_FLAG   flags;              /* Flags to indicate NDEF capability, is formated, soft/hard lockable, formatable, otp and read only */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111901] */
+    UINT8               detail_status;
+#endif
 } tNFA_NDEF_DETECT;
 
 
@@ -911,6 +922,31 @@ NFC_API extern tNFA_STATUS NFA_EnableListening (void);
 *******************************************************************************/
 NFC_API extern tNFA_STATUS NFA_DisableListening (void);
 
+/* START [16052901S] - Change listen tech mask values */
+/*******************************************************************************
+**
+** Function         NFA_ChangeListening
+**
+** Description      Change listening mask.
+**                  NFA_LISTEN_CHANGED_EVT will be returned.
+**
+**                  The actual listening technologies are specified by other NFA
+**                  API functions. Such functions include (but not limited to)
+**                  NFA_CeConfigureUiccListenTech.
+**                  If NFA_DisableListening () is called to ignore the listening technologies,
+**                  NFA_EnableListening () is called to restore the listening technologies
+**                  set by these functions. NFA_ChangeListening() is called to set the listening mask.
+**
+** Note:            If RF discovery is started, NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT
+**                  may happen before calling this function
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**
+*******************************************************************************/
+NFC_API extern tNFA_STATUS NFA_ChangeListening (tNFA_TECHNOLOGY_MASK listen_mask);
+/* END [16052901S] - Change listen tech mask values */
+
 /*******************************************************************************
 **
 ** Function         NFA_PauseP2p
@@ -1196,6 +1232,13 @@ Note??
 *******************************************************************************/
 NFC_API extern tNFA_STATUS NFA_PowerOffSleepMode (BOOLEAN start_stop);
 
+
+/* START [P1604040001] - Support Dual-SIM solution */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)
+NFC_API extern tNFA_STATUS NFA_SetPreferredSimSlot (UINT16 nPreferredSimSlot);
+#endif
+/* END [P1604040001] - Support Dual-SIM solution */
+
 /*******************************************************************************
 **
 ** Function         NFA_RegVSCback
@@ -1232,6 +1275,29 @@ NFC_API extern tNFA_STATUS NFA_SendVsCommand (UINT8            oid,
                                               UINT8            cmd_params_len,
                                               UINT8            *p_cmd_params,
                                               tNFA_VSC_CBACK   *p_cback);
+
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+/*******************************************************************************
+**
+** Function         NFA_Send_NCI_Command
+**
+** Description      This function is called to send an NCI command to NFCC.
+**
+**                  gid              - The group of the NCI command.
+**                  oid             - The opcode of the VS command.
+**                  cmd_params_len  - The command parameter len
+**                  p_cmd_params    - The command parameter
+**
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**
+*******************************************************************************/
+NFC_API extern tNFA_STATUS NFA_SEC_Send_NCI_Command (UINT8            gid,
+                                              UINT8            oid,
+                                              UINT8            cmd_params_len,
+                                              UINT8            *p_cmd_params);
+#endif
 
 /*******************************************************************************
 **

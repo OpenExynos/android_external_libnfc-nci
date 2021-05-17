@@ -35,6 +35,9 @@
 #include "rw_api.h"
 #include "rw_int.h"
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111904] */
+extern tNFC_FW_VERSION nfc_fw_version;
+#endif
 #define RW_I93_TOUT_RESP                        1000    /* Response timeout     */
 #define RW_I93_TOUT_STAY_QUIET                  200     /* stay quiet timeout   */
 #define RW_I93_READ_MULTI_BLOCK_SIZE            128     /* max reading data if read multi block is supported */
@@ -781,6 +784,43 @@ tNFC_STATUS rw_i93_send_cmd_write_single_block (UINT16 block_number, UINT8 *p_da
 
     if (rw_i93_send_to_lower (p_cmd))
     {
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111904] */
+        if(0x01 == nfc_fw_version.major_version && 0x01 == nfc_fw_version.minor_version &&
+            0x0E >= nfc_fw_version.build_info_low)
+        {
+            if (flags & I93_FLAG_OPTION_SET)
+            {
+
+                BT_HDR *null_cmd;
+                UINT8 *p_build;
+                tNFC_CONN_CB *p_conn_cb = nfc_find_conn_cb_by_conn_id (NFC_RF_CONN_ID);
+
+                if (!p_conn_cb)
+                {
+                null_cmd = (BT_HDR *) GKI_getpoolbuf (NFC_RW_POOL_ID);
+
+                if (!null_cmd)
+                {
+                    RW_TRACE_ERROR1 ("%s: Cannot allocate buffer for null packet", __func__);
+                }
+                else
+                {
+                    RW_TRACE_DEBUG1 ("%s: Send Null Packet.", __func__);
+
+                    null_cmd->event             = BT_EVT_TO_NFC_NCI;
+                    null_cmd->layer_specific    = 0;
+                    null_cmd->len               = NCI_DATA_HDR_SIZE;
+                    null_cmd->offset            = NCI_MSG_OFFSET_SIZE;
+                    p_build = (UINT8 *)(null_cmd + 1) + null_cmd->offset;
+                    NCI_DATA_PBLD_HDR(p_build, 0, p_conn_cb->conn_id, 0);
+                    GKI_delay(10);
+                    HAL_WRITE(null_cmd);
+                }
+                }
+            }
+        }
+#endif
+
         rw_cb.tcb.i93.sent_cmd  = I93_CMD_WRITE_SINGLE_BLOCK;
         return NFC_STATUS_OK;
     }
@@ -844,6 +884,47 @@ tNFC_STATUS rw_i93_send_cmd_lock_block (UINT8 block_number)
 
     if (rw_i93_send_to_lower (p_cmd))
     {
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111904] */
+        if(0x01 == nfc_fw_version.major_version && 0x01 == nfc_fw_version.minor_version &&
+            0x0E >= nfc_fw_version.build_info_low)
+        {
+
+            if (  (rw_cb.tcb.i93.product_version == RW_I93_TAG_IT_HF_I_PLUS_INLAY)
+                ||(rw_cb.tcb.i93.product_version == RW_I93_TAG_IT_HF_I_PLUS_CHIP)
+                ||(rw_cb.tcb.i93.product_version == RW_I93_TAG_IT_HF_I_STD_CHIP_INLAY)
+                ||(rw_cb.tcb.i93.product_version == RW_I93_TAG_IT_HF_I_PRO_CHIP_INLAY)  )
+            {
+
+                BT_HDR *null_cmd;
+                UINT8 *p_build;
+                tNFC_CONN_CB *p_conn_cb = nfc_find_conn_cb_by_conn_id (NFC_RF_CONN_ID);
+
+                if (!p_conn_cb)
+                {
+                null_cmd = (BT_HDR *) GKI_getpoolbuf (NFC_RW_POOL_ID);
+
+                if (!null_cmd)
+                {
+                    RW_TRACE_ERROR1 ("%s: Cannot allocate buffer for null packet", __func__);
+                }
+                else
+                {
+                    RW_TRACE_DEBUG1 ("%s: Send Null Packet.", __func__);
+
+                    null_cmd->event             = BT_EVT_TO_NFC_NCI;
+                    null_cmd->layer_specific    = 0;
+                    null_cmd->len               = NCI_DATA_HDR_SIZE;
+                    null_cmd->offset            = NCI_MSG_OFFSET_SIZE;
+                    p_build = (UINT8 *)(null_cmd + 1) + null_cmd->offset;
+                    NCI_DATA_PBLD_HDR(p_build, 0, p_conn_cb->conn_id, 0);
+                    GKI_delay(10);
+                    HAL_WRITE(null_cmd);
+                }
+                }
+            }
+        }
+#endif
+
         rw_cb.tcb.i93.sent_cmd  = I93_CMD_LOCK_BLOCK;
         return NFC_STATUS_OK;
     }

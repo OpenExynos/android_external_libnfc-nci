@@ -278,6 +278,10 @@ static void nfa_rw_handle_ndef_detect(tRW_EVENT event, tRW_DATA *p_rw_data)
         {
             conn_evt_data.ndef_detect.protocol = p_rw_data->ndef.protocol;
             /* current op was stand-alone NFA_DetectNDef. Notify app of failure */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111901] */
+        conn_evt_data.ndef_detect.detail_status = p_rw_data->status;
+        NFA_TRACE_DEBUG2("%s: conn_evt_data.ndef_detect.detail_status = 0x%X", __func__, conn_evt_data.ndef_detect.detail_status);
+#endif
             if (p_rw_data->ndef.status == NFC_STATUS_TIMEOUT)
             {
                 /* Tag could have moved away */
@@ -2672,6 +2676,11 @@ BOOLEAN nfa_rw_activate_ntf(tNFA_RW_MSG *p_data)
         if (  (p_activate_params->protocol != NFA_PROTOCOL_T1T)
             &&(p_activate_params->protocol != NFA_PROTOCOL_T2T)
             &&(p_activate_params->protocol != NFA_PROTOCOL_T3T)
+/* START [S16031100] - Abnormal T4T Read Patch*/
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)
+            &&(p_activate_params->protocol != NFA_PROTOCOL_ISO_DEP)
+#endif
+/* END [S16031100] - Abnormal T4T Read Patch*/
             &&(p_activate_params->protocol != NFC_PROTOCOL_15693)  )
         {
             nfa_rw_cb.protocol = NFA_PROTOCOL_INVALID;

@@ -483,6 +483,13 @@ void nci_proc_prop_ntf (BT_HDR *p_msg)
     NCI_MSG_PRS_HDR1 (pp, op_code);
     len = *pp++;
 
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+    if (p[1] == 0xFF)
+    {
+        nfc_ncif_proc_firmware_download_status_ntf (*pp);
+        return;
+    }
+#endif
     for (i = 0; i < NFC_NUM_VS_CBACKS; i++)
     {
         if (nfc_cb.p_vs_cb[i])

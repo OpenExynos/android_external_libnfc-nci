@@ -1663,7 +1663,11 @@ static void rw_t3t_handle_get_sc_poll_rsp (tRW_T3T_CB *p_cb, UINT8 nci_status, U
             BE_STREAM_TO_UINT16 (sc, p);
 
             /* Handle felica lite */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S15052704] */
+            if ((sc == T3T_SYSTEM_CODE_FELICA_LITE) || (sc == T3T_SYSTEM_CODE_NDEF))
+#else
             if (sc == T3T_SYSTEM_CODE_FELICA_LITE)
+#endif
             {
                 RW_TRACE_DEBUG1 ("FeliCa Lite tag detected (system code %04X)", sc);
                 /* Store system code */

@@ -454,7 +454,12 @@ tNFA_STATUS nfa_ce_start_listening (void)
                         listen_mask |= NFA_DM_DISC_MASK_L_B_PRIME;
                     }
                 }
-
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111809] */
+                else
+                {
+                    p_cb->listen_info[listen_info_idx].flags = 0;
+                }
+#endif
                 if (listen_mask)
                 {
                     /* Start listening for requested technologies */

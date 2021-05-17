@@ -27,7 +27,11 @@
 #include <string.h>
 #include "config.h"
 #include "android_logmsg.h"
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802] */
+#define LOG_TAG "SecNfcJni"
+#else
 #define LOG_TAG "BrcmNfcJni"
+#endif
 
 
 /*******************************************************************************

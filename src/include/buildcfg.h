@@ -85,7 +85,11 @@ extern void downloadFirmwarePatchFile (UINT32 brcm_hw_id);
 
 void ProtoDispAdapterDisplayNciPacket (UINT8* nciPacket, UINT16 nciPacketLen, BOOLEAN is_recv);
 #define DISP_NCI ProtoDispAdapterDisplayNciPacket
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802] */
+#define LOGMSG_TAG_NAME "SecNfcNfa"
+#else
 #define LOGMSG_TAG_NAME "BrcmNfcNfa"
+#endif
 
 #ifndef _TIMEB
 #define _TIMEB

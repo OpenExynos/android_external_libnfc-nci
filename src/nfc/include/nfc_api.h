@@ -33,6 +33,13 @@
 #include "gki.h"
 
 #include "vendor_cfg.h"
+/* START [16052901S] - Change listen tech mask values */
+#define NFC_LISTEN_A            0x01
+#define NFC_LISTEN_B            0x02
+#define NFC_LISTEN_F            0x04
+#define NFC_LISTEN_A_ACTIVE     0x40
+#define NFC_LISTEN_F_ACTIVE     0x80
+/* END [16052901S] - Change listen tech mask values */
 
 /* NFC application return status codes */
 #define NFC_STATUS_OK                   NCI_STATUS_OK                   /* Command succeeded    */
@@ -184,10 +191,23 @@ enum
     NFC_NFCC_TIMEOUT_REVT,                  /* 15 NFCC is not responding        */
     NFC_NFCC_TRANSPORT_ERR_REVT,            /* 16 NCI Tranport error            */
     NFC_NFCC_POWER_OFF_REVT,                /* 17 NFCC turned off               */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+    NFC_NFCC_FIRMWARE_DOWNLOAD_STATUS_NOTIFY, /* 18 Firmware Download Status    */
+#endif
 
     NFC_FIRST_VS_REVT                       /* First vendor-specific rsp event  */
 };
 typedef UINT16 tNFC_RESPONSE_EVT;
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+enum
+{
+    NFC_FIRMWARE_DOWNLOAD_STATUS_NONE = 0,
+    NFC_FIRMWARE_DOWNLOAD_STATUS_START,
+    NFC_FIRMWARE_DOWNLOAD_STATUS_COMPLETED,
+    NFC_FIRMWARE_DOWNLOAD_STATUS_ERROR
+};
+#endif
 
 enum
 {
@@ -234,6 +254,15 @@ typedef struct
     UINT16                  tlv_size;       /* The length of TLV    */
     UINT8                   *p_param_tlvs;  /* TLV                  */
 } tNFC_GET_CONFIG_REVT;
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+typedef struct
+{
+    UINT8           major_version;      /* Major Version  */
+    UINT8           minor_version;      /* Minor Version */
+    UINT16           build_info_high;    /* Build Info High Version  */
+    UINT16           build_info_low;     /* Build Info Low Version  */
+} tNFC_FW_VERSION;
+#endif
 
 /* the data type associated with NFC_NFCEE_DISCOVER_REVT */
 typedef struct
@@ -345,6 +374,9 @@ typedef UINT8 tNFC_RF_TECH;
 #define NFC_PROTOCOL_ISO_DEP    NCI_PROTOCOL_ISO_DEP  /* Type 4A,4B  - NFC-A or NFC-B   */
 #define NFC_PROTOCOL_NFC_DEP    NCI_PROTOCOL_NFC_DEP  /* NFCDEP/LLCP - NFC-A or NFC-F       */
 #define NFC_PROTOCOL_MIFARE     NCI_PROTOCOL_MIFARE
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802-1] */
+#define NFC_PROTOCOL_CLT        NCI_PROTOCOL_CLT
+#endif
 #define NFC_PROTOCOL_B_PRIME    NCI_PROTOCOL_B_PRIME
 #define NFC_PROTOCOL_15693      NCI_PROTOCOL_15693
 #define NFC_PROTOCOL_KOVIO      NCI_PROTOCOL_KOVIO
@@ -1286,6 +1318,32 @@ NFC_API extern UINT8 NFC_SetTraceLevel (UINT8 new_level);
 **
 *******************************************************************************/
 NFC_API extern char * NFC_GetStatusName (tNFC_STATUS status);
+#endif
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111810] */
+/*******************************************************************************
+**
+** Function         NFC_getAIDTableSize
+**
+** Description      This function return AIDTableSize.
+**
+** Returns          AID table size.
+**
+*******************************************************************************/
+NFC_API extern UINT16 NFC_getAIDTableSize();
+#endif
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+/*******************************************************************************
+**
+** Function         NFC_getFWVersion
+**
+** Description      This function return F/W version of S.LSI NFC.
+**
+** Returns          NFC_FW_VERSION struct value.
+**
+*******************************************************************************/
+NFC_API extern tNFC_FW_VERSION NFC_getFWVersion();
 #endif
 
 #ifdef __cplusplus

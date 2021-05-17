@@ -53,6 +53,14 @@
 #define NFA_DM_DISABLE_TIMEOUT_VAL         1000
 #endif
 
+/* START [P1604040001] - Support Dual-SIM solution */
+#define SIM_SLOT_N1       1
+#define SIM_SLOT_N2		 2
+
+static UINT16   sPreferredSimSlot = SIM_SLOT_N1;
+static BOOLEAN nfa_dm_VS_data(UINT8 oid, UINT8 *p_raw_data, UINT16 data_len, tNFC_VS_CBACK * p_cback);
+/* END [P1604040001] - Support Dual-SIM solution */
+
 static void nfa_dm_set_init_nci_params (void);
 static tNFA_STATUS nfa_dm_start_polling (void);
 static BOOLEAN nfa_dm_deactivate_polling (void);
@@ -167,6 +175,13 @@ static void nfa_dm_set_init_nci_params (void)
     /* WT */
     nfa_dm_cb.params.wt[0] = 14;
 
+/* START [P1604040001] - Support Dual-SIM solution */
+    NFA_TRACE_DEBUG1 ("nfa_dm_set_init_nci_params (): Select SIM Slot =%d", sPreferredSimSlot);
+	UINT8 vs_cmd[] = { 0x01};
+	vs_cmd[0] = (UINT8)sPreferredSimSlot;
+    nfa_dm_VS_data (0x07, vs_cmd, 0x01, NULL);
+/* END [P1604040001] - Support Dual-SIM solution */
+
     /* Set CE default configuration */
     if (p_nfa_dm_ce_cfg[0])
     {
@@ -184,6 +199,35 @@ static void nfa_dm_set_init_nci_params (void)
         NFC_DiscoveryMap (nfa_dm_num_dm_interface_mapping, p_nfa_dm_interface_mapping, NULL);
     }
 }
+
+
+/* START [P1604040001] - Support Dual-SIM solution */
+static BOOLEAN nfa_dm_VS_data(UINT8 oid, UINT8 *p_raw_data, UINT16 data_len, tNFC_VS_CBACK * p_cback)
+{
+
+    tNFC_STATUS status = NFC_STATUS_FAILED;
+    BT_HDR  *p_data;
+    UINT8   *p;
+
+    p_data = (BT_HDR *) GKI_getpoolbuf (NFC_NCI_POOL_ID);
+    if (p_data)
+    {
+        p_data->offset = sizeof (tNFA_DM_API_SEND_VSC) - BT_HDR_SIZE;
+        p = (UINT8 *) (p_data + 1) + p_data->offset;
+        memcpy (p, p_raw_data, data_len);
+        p_data->len = data_len;
+
+        NFA_TRACE_DEBUG1("Send data (0x%x)", data_len);
+
+        status = NFC_SendVsCommand(oid, p_data, p_cback);
+
+        if(NFC_STATUS_OK != status)
+            NFA_TRACE_DEBUG0("%s: data sending failed");
+    }
+
+    return status;
+}
+/* END [P1604040001] - Support Dual-SIM solution */
 
 /*******************************************************************************
 **
@@ -372,7 +416,13 @@ static void nfa_dm_nfc_response_cback (tNFC_RESPONSE_EVT event, tNFC_RESPONSE *p
         (*nfa_dm_cb.p_dm_cback) (NFA_DM_RF_FIELD_EVT, &dm_cback_data);
         break;
 
-
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+    case NFC_NFCC_FIRMWARE_DOWNLOAD_STATUS_NOTIFY:
+        NFA_TRACE_DEBUG1 ("nfa_dm_nfc_response_cback : NFA_DM_FIRMWARE_DOWNLOAD_STATUS_NOTIFY_EVT %d", p_data->status);
+        dm_cback_data.status = p_data->status;
+        (*nfa_dm_cb.p_dm_cback) (NFA_DM_FIRMWARE_DOWNLOAD_STATUS_NOTIFY_EVT, &dm_cback_data);
+        break;
+#endif
 
     case NFC_GEN_ERROR_REVT:                     /* generic error command or notification */
         break;
@@ -829,6 +879,17 @@ BOOLEAN nfa_dm_act_power_off_sleep (tNFA_DM_MSG *p_data)
     return (TRUE);
 }
 
+
+/* START [P1604040001] - Support Dual-SIM solution */
+BOOLEAN nfa_dm_act_set_preferred_simslot (UINT16 nPreferredSimSlot)
+{
+	sPreferredSimSlot = nPreferredSimSlot;
+	NFA_TRACE_DEBUG1 ("nfa_dm_act_set_preferred_simslot() : sPreferredSimSlot = %d", sPreferredSimSlot);
+
+    return (TRUE);
+}
+/* END [P1604040001] - Support Dual-SIM solution */
+
 /*******************************************************************************
 **
 ** Function         nfa_dm_act_reg_vsc
@@ -1109,6 +1170,36 @@ BOOLEAN nfa_dm_act_disable_listening (tNFA_DM_MSG *p_data)
 
     return (TRUE);
 }
+
+/* START [16052901S] - Change listen tech mask values */
+/*******************************************************************************
+**
+** Function         nfa_dm_act_change_listening
+**
+** Description      Process change listening command
+**
+** Returns          TRUE (message buffer to be freed by caller)
+**
+*******************************************************************************/
+BOOLEAN nfa_dm_act_change_listening (tNFA_DM_MSG *p_data)
+{
+    tNFA_CONN_EVT_DATA evt_data;
+
+    NFA_TRACE_DEBUG0 ("nfa_dm_act_change_listening ()");
+
+	if(p_data->change_listen.listen_mask == 0xFF)
+		nfa_dm_cb.flags &= ~NFA_DM_FLAGS_LISTEN_CHANGED;
+	else
+		nfa_dm_cb.flags |= NFA_DM_FLAGS_LISTEN_CHANGED;
+
+	nfa_dm_cb.listen_mask = p_data->change_listen.listen_mask;
+    evt_data.status = NFA_STATUS_OK;
+    nfa_dm_conn_cback_event_notify (NFA_LISTEN_CHANGED_EVT, &evt_data);
+
+    return (TRUE);
+}
+/* END [16052901S] - Change listen tech mask values */
+
 
 /*******************************************************************************
 **
@@ -1957,6 +2048,11 @@ char *nfa_dm_nfc_revt_2_str (tNFC_RESPONSE_EVT event)
 
     case NFC_NFCC_POWER_OFF_REVT:
         return "NFC_NFCC_POWER_OFF_REVT";
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+    case NFC_NFCC_FIRMWARE_DOWNLOAD_STATUS_NOTIFY:
+        return "NFC_NFCC_FIRMWARE_DOWNLOAD_STATUS_NOTIFY";
+#endif
 
     default:
         return "unknown revt";

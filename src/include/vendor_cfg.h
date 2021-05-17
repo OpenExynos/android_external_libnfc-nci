@@ -23,6 +23,22 @@
 #define __NFC_VENDOR_CFG_H__
 
 /* compile-time configuration structure for proprietary protocol and discovery value */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)  /* START_SLSI [S14111802-1] */
+typedef struct
+{
+    UINT8 pro_protocol_18092_active;
+    UINT8 pro_protocol_b_prime;
+    UINT8 pro_protocol_dual;
+    UINT8 pro_protocol_15693;
+    UINT8 pro_protocol_kovio;
+    UINT8 pro_protocol_mfc;
+    UINT8 pro_protocol_clt;
+
+    UINT8 pro_discovery_kovio_poll;
+    UINT8 pro_discovery_b_prime_poll;
+    UINT8 pro_discovery_b_prime_listen;
+} tNFA_PROPRIETARY_CFG;
+#else
 typedef struct
 {
     UINT8 pro_protocol_18092_active;
@@ -36,7 +52,7 @@ typedef struct
     UINT8 pro_discovery_b_prime_poll;
     UINT8 pro_discovery_b_prime_listen;
 } tNFA_PROPRIETARY_CFG;
-
+#endif
 
 extern tNFA_PROPRIETARY_CFG *p_nfa_proprietary_cfg;
 
@@ -60,6 +76,11 @@ extern tNFA_PROPRIETARY_CFG *p_nfa_proprietary_cfg;
 #endif
 #ifndef NCI_PROTOCOL_MIFARE
 #define NCI_PROTOCOL_MIFARE             (p_nfa_proprietary_cfg->pro_protocol_mfc)
+#endif
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)  /* START_SLSI [S14111802-1] */
+#ifndef NCI_PROTOCOL_CLT
+#define NCI_PROTOCOL_CLT                (p_nfa_proprietary_cfg->pro_protocol_clt)
+#endif
 #endif
 
  /**********************************************

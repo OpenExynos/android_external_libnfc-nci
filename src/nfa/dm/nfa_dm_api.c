@@ -499,6 +499,48 @@ tNFA_STATUS NFA_DisableListening (void)
     return (NFA_STATUS_FAILED);
 }
 
+/* START [16052901S] - Change listen tech mask values */
+/*******************************************************************************
+**
+** Function         NFA_ChangeListening
+**
+** Description      Change listening.
+**                  NFA_LISTEN_ENABLED_EVT will be returned after listening is allowed.
+**
+**                  The actual listening technologies are specified by other NFA
+**                  API functions. Such functions include (but not limited to)
+**                  NFA_CeConfigureUiccListenTech.
+**                  If NFA_DisableListening () is called to ignore the listening technologies,
+**                  NFA_EnableListening () is called to restore the listening technologies
+**                  set by these functions.
+**
+** Note:            If RF discovery is started, NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT
+**                  should happen before calling this function
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**
+*******************************************************************************/
+tNFA_STATUS NFA_ChangeListening (tNFA_TECHNOLOGY_MASK listen_mask)
+{
+    tNFA_DM_API_CHANGE_LISTEN *p_msg;
+
+    NFA_TRACE_API1 ("NFA_ChangeListening () 0x%X", listen_mask);
+
+    if ((p_msg = (tNFA_DM_API_CHANGE_LISTEN *) GKI_getbuf (sizeof (tNFA_DM_API_CHANGE_LISTEN))) != NULL)
+    {
+        p_msg->hdr.event = NFA_DM_API_CHANGE_LISTENING_EVT;
+		p_msg->listen_mask = listen_mask;
+
+        nfa_sys_sendmsg (p_msg);
+
+        return (NFA_STATUS_OK);
+    }
+
+    return (NFA_STATUS_FAILED);
+}
+/* END [16052901S] - Change listen tech mask values */
+
 /*******************************************************************************
 **
 ** Function         NFA_PauseP2p
@@ -1094,6 +1136,22 @@ tNFA_STATUS NFA_PowerOffSleepMode (BOOLEAN start_stop)
     return (NFA_STATUS_FAILED);
 }
 
+
+/* START [P1604040001] - Support Dual-SIM solution */
+tNFA_STATUS NFA_SetPreferredSimSlot (UINT16 nPreferredSimSlot)
+{
+    NFA_TRACE_API1 ("NFA_SetPreferredSimSlot () nPreferredSimSlot=%d", nPreferredSimSlot);
+
+	if(nfa_dm_act_set_preferred_simslot (nPreferredSimSlot))
+		return (NFA_STATUS_OK);
+	else
+		return (NFA_STATUS_FAILED);
+
+    return (NFA_STATUS_FAILED);
+}
+/* END [P1604040001] - Support Dual-SIM solution */
+
+
 /*******************************************************************************
 **
 ** Function         NFA_RegVSCback
@@ -1184,6 +1242,59 @@ tNFA_STATUS NFA_SendVsCommand (UINT8            oid,
 
     return (NFA_STATUS_FAILED);
 }
+
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+/*******************************************************************************
+**
+** Function         NFA_Send_NCI_Command
+**
+** Description      This function is called to send an NCI command to NFCC.
+**
+**                  gid              - The group of the NCI command.
+**                  oid             - The opcode of the VS command.
+**                  cmd_params_len  - The command parameter len
+**                  p_cmd_params    - The command parameter
+**
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**
+*******************************************************************************/
+tNFA_STATUS NFA_SEC_Send_NCI_Command (UINT8            gid,
+                                UINT8            oid,
+                               UINT8            cmd_params_len,
+                               UINT8            *p_cmd_params)
+{
+    tNFA_SEC_DM_API_SEND_NCI *p_msg;
+    UINT16  size = sizeof(tNFA_SEC_DM_API_SEND_NCI) + cmd_params_len;
+
+    NFA_TRACE_API2 ("NFA_Send_NCI_Command() gid=0x%x oid=0x%x", gid, oid);
+
+    if ((p_msg = (tNFA_SEC_DM_API_SEND_NCI *) GKI_getbuf (size)) != NULL)
+    {
+        p_msg->hdr.event        = NFA_SEC_DM_API_SEND_NCI_EVT;
+        p_msg->gid              = gid;
+        p_msg->oid              = oid;
+        if (cmd_params_len && p_cmd_params)
+        {
+            p_msg->cmd_params_len   = cmd_params_len;
+            p_msg->p_cmd_params     = (UINT8 *)(p_msg + 1);
+            memcpy (p_msg->p_cmd_params, p_cmd_params, cmd_params_len);
+        }
+        else
+        {
+            p_msg->cmd_params_len   = 0;
+            p_msg->p_cmd_params     = NULL;
+        }
+
+        nfa_sys_sendmsg (p_msg);
+
+        return (NFA_STATUS_OK);
+    }
+
+    return (NFA_STATUS_FAILED);
+}
+#endif
 
 /*******************************************************************************
 **

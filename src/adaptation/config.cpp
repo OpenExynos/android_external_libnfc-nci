@@ -26,8 +26,14 @@
 
 const char transport_config_path[] = "/etc/";
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111801] */
+#define config_name             "libnfc-sec.conf"
+#define extra_config_base       "libnfc-sec-"
+#else
 #define config_name             "libnfc-brcm.conf"
 #define extra_config_base       "libnfc-brcm-"
+#endif
+
 #define extra_config_ext        ".conf"
 #define     IsStringValue       0x80000000
 

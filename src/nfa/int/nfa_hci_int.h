@@ -398,6 +398,9 @@ typedef struct
     UINT8                           *p_msg_data;                        /* For segmentation - reassembled message */
     UINT8                           type;                               /* Instruction type of incoming message */
     UINT8                           inst;                               /* Instruction of incoming message */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111813] */
+    BOOLEAN                         dh_need_clear_pipe;                               /* Instruction flag to clear all pipe */
+#endif
 
     BUFFER_Q                        hci_api_q;                          /* Buffer Q to hold incoming API commands */
     BUFFER_Q                        hci_host_reset_api_q;               /* Buffer Q to hold incoming API commands to a host that is reactivating */

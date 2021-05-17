@@ -49,6 +49,12 @@ static const UINT8 nfc_mpl_code_to_size[] =
 #define NFC_PB_ATTRIB_REQ_FIXED_BYTES   1
 #define NFC_LB_ATTRIB_REQ_FIXED_BYTES   8
 
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111810] */
+static UINT16 aid_table_size;
+#endif
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+tNFC_FW_VERSION nfc_fw_version;
+#endif
 
 /*******************************************************************************
 **
@@ -558,6 +564,20 @@ void nfc_ncif_proc_rf_field_ntf (UINT8 rf_status)
         evt_data.status            = (tNFC_STATUS) NFC_STATUS_OK;
         evt_data.rf_field.rf_field = rf_status;
         (*nfc_cb.p_resp_cback) (NFC_RF_FIELD_REVT, &evt_data);
+    }
+}
+#endif
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+void nfc_ncif_proc_firmware_download_status_ntf (UINT8 status)
+{
+    tNFC_RESPONSE   evt_data;
+
+    if (nfc_cb.p_resp_cback)
+    {
+        evt_data.status            = (tNFC_STATUS) status;
+        NFC_TRACE_ERROR1("nfc_ncif_proc_firmware_download_status_ntf : %d", status);
+        (*nfc_cb.p_resp_cback) (NFC_NFCC_FIRMWARE_DOWNLOAD_STATUS_NOTIFY, &evt_data);
     }
 }
 #endif
@@ -1330,6 +1350,18 @@ void nfc_ncif_proc_init_rsp (BT_HDR *p_msg)
     status   = *(p + NCI_MSG_HDR_SIZE);
     if (status == NCI_STATUS_OK)
     {
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111810] */
+        nfc_extract_AIDTableSize(p);
+#endif
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+        nfc_extract_FWVersion(p);
+        if (nfc_cb.nfc_state == NFC_STATE_W4_POST_INIT_CPLT) // after F/W update
+        {
+            nfc_cb.p_nci_init_rsp = p_msg;
+            return;
+        }
+#endif
+
         p_cb->id            = NFC_RF_CONN_ID;
         p_cb->act_protocol  = NCI_PROTOCOL_UNKNOWN;
 
@@ -1344,6 +1376,81 @@ void nfc_ncif_proc_init_rsp (BT_HDR *p_msg)
         GKI_freebuf (p_msg);
     }
 }
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111810] */
+/*******************************************************************************
+**
+** Function         nfc_extract_AIDTableSize
+**
+** Description     This function extract F/W version from CORE_INIT_RSP.
+**
+** Returns          void
+**
+*******************************************************************************/
+void nfc_extract_AIDTableSize(UINT8 * p_buf)
+{
+    // Get Version ptr
+    // p_buf[2] + 2 = lengh of p_buf = 0x16, ((p_buf[2]+2) -10) = starting ptr of AID table size.
+    UINT16  sizeHigh = p_buf[(p_buf[2]+3)-9];
+    UINT16  sizeLow = p_buf[(p_buf[2]+3)-10];
+
+    aid_table_size = (sizeHigh * 0x100) + sizeLow;
+
+    NFC_TRACE_DEBUG1("AID Table Size : %d bytes", aid_table_size);
+}
+/*******************************************************************************
+**
+** Function         NFC_getAIDTableSize
+**
+** Description      This function return aid table size
+**
+** Returns          UINT16
+**
+*******************************************************************************/
+UINT16 NFC_getAIDTableSize()
+{
+  return aid_table_size;
+}
+#endif
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+/*******************************************************************************
+**
+** Function         nfc_extract_FWVersion
+**
+** Description     This function extract F/W version from CORE_INIT_RSP.
+**
+** Returns          void
+**
+*******************************************************************************/
+void nfc_extract_FWVersion(UINT8 * p_buf)
+{
+    // Get Version ptr
+    // p_buf[2] + 3 = lengh of p_buf = 0x16, ((p_buf[2]+2) -4) = starting ptr of version info.
+    UINT8 *p_ver = &p_buf[(p_buf[2]+3)-4];
+    memset (&nfc_fw_version, 0, sizeof(nfc_fw_version));
+    nfc_fw_version.major_version    = (p_ver[0] >> 4) & 0xF;
+    nfc_fw_version.minor_version    = p_ver[0] & 0xF;
+    nfc_fw_version.build_info_high  = p_ver[1];
+    nfc_fw_version.build_info_low   = p_ver[2];
+
+    NFC_TRACE_DEBUG3("FW Version : %d.%d.%d", nfc_fw_version.major_version,
+                      nfc_fw_version.minor_version,
+                     (nfc_fw_version.build_info_high*0x100) + nfc_fw_version.build_info_low);
+}
+
+/*******************************************************************************
+**
+** Function         NFC__getFWVersion
+**
+** Description      This function return struct of FW Version
+**
+** Returns          tNFC_FW_VERSION
+**
+*******************************************************************************/
+tNFC_FW_VERSION NFC_getFWVersion()
+{
+  return nfc_fw_version;
+}
+#endif
 
 /*******************************************************************************
 **
@@ -1445,6 +1552,21 @@ void nfc_data_event (tNFC_CONN_CB * p_cb)
             /* adjust payload, if needed */
             if (p_cb->conn_id == NFC_RF_CONN_ID)
             {
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111906] */
+                if (p_cb->act_protocol == NCI_PROTOCOL_15693)
+                {
+                    p_evt->len--;
+                    p                = (UINT8 *) (p_evt + 1);
+                    data_cevt.status = *(p + p_evt->offset + p_evt->len);
+                    if (data_cevt.status != NFC_STATUS_OK)
+                    {
+                        (*p_cb->p_cback) (p_cb->conn_id, NFC_ERROR_CEVT, (tNFC_CONN *) &data_cevt);
+                        GKI_freebuf (p_evt);
+                        p_evt = NULL;
+                        return;
+                    }
+                }
+#endif
                 /* if NCI_PROTOCOL_T1T/NCI_PROTOCOL_T2T/NCI_PROTOCOL_T3T, the status byte needs to be removed
                  */
                 if ((p_cb->act_protocol >= NCI_PROTOCOL_T1T) && (p_cb->act_protocol <= NCI_PROTOCOL_T3T))

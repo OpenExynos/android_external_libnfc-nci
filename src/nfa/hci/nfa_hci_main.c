@@ -474,7 +474,12 @@ void nfa_hci_dh_startup_complete (void)
         {
             nfa_hci_cb.hci_state = NFA_HCI_STATE_WAIT_NETWK_ENABLE;
             /* Wait for EE Discovery to complete */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111808] */
+            NFA_TRACE_DEBUG0 ("changed nfa_sys_start_timer to 600ms");
+            nfa_sys_start_timer (&nfa_hci_cb.timer, NFA_HCI_RSP_TIMEOUT_EVT, NFA_EE_DISCV_TIMEOUT_VAL_ADD);
+#else
             nfa_sys_start_timer (&nfa_hci_cb.timer, NFA_HCI_RSP_TIMEOUT_EVT, NFA_EE_DISCV_TIMEOUT_VAL);
+#endif
         }
         else if (nfa_hci_cb.hci_state == NFA_HCI_STATE_RESTORE)
         {
@@ -869,6 +874,13 @@ void nfa_hci_handle_nv_read (UINT8 block, tNFA_STATUS status)
             os_tick = GKI_get_os_tick_count ();
             memcpy (session_id, (UINT8 *)&os_tick, (NFA_HCI_SESSION_ID_LEN / 2));
             nfa_hci_restore_default_config (session_id);
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111813] */
+            nfa_hci_cb.dh_need_clear_pipe = TRUE;
+        }
+        else
+        {
+            nfa_hci_cb.dh_need_clear_pipe = FALSE;
+#endif
         }
         nfa_hci_startup ();
     }

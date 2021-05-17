@@ -261,6 +261,16 @@ NFC_API extern void nfc_ncif_proc_data (BT_HDR *p_msg);
 NFC_API extern BOOLEAN nfa_dm_p2p_prio_logic(UINT8 event, UINT8 *p, UINT8 ntf_rsp);
 NFC_API extern void nfa_dm_p2p_timer_event ();
 NFC_API extern void nfa_dm_p2p_prio_logic_cleanup ();
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111810] */
+NFC_API extern void nfc_extract_AIDTableSize(UINT8 * p_buf);
+#endif
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111902] */
+NFC_API extern void nfc_extract_FWVersion(UINT8 * p_buf);
+#endif
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052702] */
+NFC_API extern void  nfc_ncif_proc_firmware_download_status_ntf(UINT8 status);
+#endif
 
 #if (NFC_RW_ONLY == FALSE)
 NFC_API extern void nfc_ncif_proc_rf_field_ntf (UINT8 rf_status);

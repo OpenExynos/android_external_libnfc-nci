@@ -104,7 +104,10 @@ enum
 };
 typedef UINT8 tNFA_EE_CONN_ST;
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14120401] */
 #define NFA_EE_MAX_AID_CFG_LEN  (510)
+#else
+#endif
 #define NFA_EE_7816_STATUS_LEN  (2)
 
 /* NFA EE control block flags:
@@ -120,9 +123,13 @@ typedef UINT8 tNFA_EE_CONN_ST;
 #define NFA_EE_ECB_FLAGS_ORDER      0x80      /* DISC_REQ N reported before DISC N  */
 typedef UINT8 tNFA_EE_ECB_FLAGS;
 
-/* part of tNFA_EE_STATUS; for internal use only  */
+/* part of tNFA_EE_STATUS; for inter use only  */
 #define NFA_EE_STATUS_RESTORING 0x20      /* waiting for restore to full power mode to complete */
-#define NFA_EE_STATUS_INT_MASK  0x20      /* this bit is in ee_status for internal use only */
+#define NFA_EE_STATUS_INT_MASK  0x20      /* this bit is in ee_status for inter use only */
+
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+#define NFA_EE_PWR_SUB_SIZE  3
+#endif
 
 /* NFA-EE information for a particular NFCEE Entity (including DH) */
 typedef struct
@@ -130,9 +137,15 @@ typedef struct
     tNFA_TECHNOLOGY_MASK    tech_switch_on;     /* default routing - technologies switch_on  */
     tNFA_TECHNOLOGY_MASK    tech_switch_off;    /* default routing - technologies switch_off */
     tNFA_TECHNOLOGY_MASK    tech_battery_off;   /* default routing - technologies battery_off*/
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+    tNFA_TECHNOLOGY_MASK    tech_sub_state[NFA_EE_PWR_SUB_SIZE];  /* default routing - technologies sub_state  */
+#endif
     tNFA_PROTOCOL_MASK      proto_switch_on;    /* default routing - protocols switch_on     */
     tNFA_PROTOCOL_MASK      proto_switch_off;   /* default routing - protocols switch_off    */
     tNFA_PROTOCOL_MASK      proto_battery_off;  /* default routing - protocols battery_off   */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+    tNFA_PROTOCOL_MASK      proto_sub_state[NFA_EE_PWR_SUB_SIZE]; /* default routing - protocols sub_state     */
+#endif
     tNFA_EE_CONN_ST         conn_st;            /* connection status */
     UINT8                   conn_id;            /* connection id */
     tNFA_EE_CBACK           *p_ee_cback;        /* the callback function */
@@ -162,6 +175,9 @@ typedef struct
     tNFA_NFC_PROTOCOL       lbp_protocol;       /* Listen B' protocol   */
     UINT8                   size_mask;          /* the size for technology and protocol routing */
     UINT16                  size_aid;           /* the size for aid routing */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S15100101] */
+    tNFC_RF_TECH_N_MODE     other_tech;
+#endif
 } tNFA_EE_ECB;
 
 /* data type for NFA_EE_API_DISCOVER_EVT */
@@ -203,6 +219,9 @@ typedef struct
     tNFA_TECHNOLOGY_MASK    technologies_switch_on;
     tNFA_TECHNOLOGY_MASK    technologies_switch_off;
     tNFA_TECHNOLOGY_MASK    technologies_battery_off;
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+    tNFA_TECHNOLOGY_MASK    technologies_sub_state[3];
+#endif
 } tNFA_EE_API_SET_TECH_CFG;
 
 /* data type for NFA_EE_API_SET_PROTO_CFG_EVT */
@@ -214,6 +233,9 @@ typedef struct
     tNFA_PROTOCOL_MASK  protocols_switch_on;
     tNFA_PROTOCOL_MASK  protocols_switch_off;
     tNFA_PROTOCOL_MASK  protocols_battery_off;
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+    tNFA_PROTOCOL_MASK  protocols_sub_state[3];
+#endif
 } tNFA_EE_API_SET_PROTO_CFG;
 
 /* data type for NFA_EE_API_ADD_AID_EVT */
@@ -483,6 +505,9 @@ void nfa_ee_report_event(tNFA_EE_CBACK *p_cback, tNFA_EE_EVT event, tNFA_EE_CBAC
 tNFA_EE_ECB * nfa_ee_find_aid_offset(UINT8 aid_len, UINT8 *p_aid, int *p_offset, int *p_entry);
 void nfa_ee_remove_labels(void);
 int nfa_ee_find_total_aid_len(tNFA_EE_ECB *p_cb, int start_entry);
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14121101] */
+extern int nfa_all_ee_find_total_aid_len();
+#endif
 void nfa_ee_start_timer(void);
 void nfa_ee_reg_cback_enable_done (tNFA_EE_ENABLE_DONE_CBACK *p_cback);
 void nfa_ee_report_update_evt (void);

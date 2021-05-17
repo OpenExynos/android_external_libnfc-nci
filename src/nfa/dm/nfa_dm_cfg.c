@@ -123,6 +123,23 @@ const tNFA_HCI_CFG nfa_hci_cfg =
 tNFA_HCI_CFG *p_nfa_hci_cfg = (tNFA_HCI_CFG *) &nfa_hci_cfg;
 
 BOOLEAN nfa_poll_bail_out_mode = FALSE;
+
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802] */
+const tNFA_PROPRIETARY_CFG nfa_proprietary_cfg =
+{
+    0x00, /* NCI_PROTOCOL_18092_ACTIVE */
+    0x81, /* NCI_PROTOCOL_B_PRIME */
+    0x82, /* NCI_PROTOCOL_DUAL */
+    0x80, /* NCI_PROTOCOL_15693 */
+    0x8A, /* NCI_PROTOCOL_KOVIO */
+    0x81, /* NCI_PROTOCOL_MIFARE */
+    0x90, /* NCI_PROTOCOL_CLT  */
+
+    0x70, /* NCI_DISCOVERY_TYPE_POLL_KOVIO */
+    0x74, /* NCI_DISCOVERY_TYPE_POLL_B_PRIME */
+    0xF4, /* NCI_DISCOVERY_TYPE_LISTEN_B_PRIME */
+};
+#else
 const tNFA_PROPRIETARY_CFG nfa_proprietary_cfg =
 {
     0x80, /* NCI_PROTOCOL_18092_ACTIVE */
@@ -135,5 +152,6 @@ const tNFA_PROPRIETARY_CFG nfa_proprietary_cfg =
     0x74, /* NCI_DISCOVERY_TYPE_POLL_B_PRIME */
     0xF4, /* NCI_DISCOVERY_TYPE_LISTEN_B_PRIME */
 };
+#endif
 
 tNFA_PROPRIETARY_CFG *p_nfa_proprietary_cfg = (tNFA_PROPRIETARY_CFG *) &nfa_proprietary_cfg;

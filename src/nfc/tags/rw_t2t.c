@@ -323,6 +323,10 @@ void rw_t2t_conn_cback (UINT8 conn_id, tNFC_CONN_EVT event, tNFC_CONN *p_data)
 
             evt_data.p_data = NULL;
             (*rw_cb.p_cback) (RW_T2T_INTF_ERROR_EVT, (tRW_DATA *) &evt_data);
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111905] */
+            if (p_data && p_data->data.p_data)
+                GKI_freebuf((BT_HDR *) (p_data->data.p_data));
+#endif
             break;
         }
         nfc_stop_quick_timer (&p_t2t->t2_timer);
@@ -346,6 +350,12 @@ void rw_t2t_conn_cback (UINT8 conn_id, tNFC_CONN_EVT event, tNFC_CONN *p_data)
         {
             rw_t2t_process_error ();
         }
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111905] */
+        /* Free the response buffer in case of invalid response*/
+        if (p_data != NULL) {
+            GKI_freebuf((BT_HDR *) (p_data->data.p_data));
+        }
+#endif
         break;
 
     default:

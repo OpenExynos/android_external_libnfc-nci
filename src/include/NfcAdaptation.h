@@ -24,6 +24,9 @@ typedef unsigned long   UINT32;
 #include "nfc_hal_api.h"
 #include <hardware/nfc.h>
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)    /* START_SLSI [S15052703] */
+#include "nfc_api.h"
+#endif
 
 class ThreadMutex
 {
@@ -69,8 +72,10 @@ public:
     void    Finalize();
     static  NfcAdaptation& GetInstance();
     tHAL_NFC_ENTRY* GetHalEntryFuncs ();
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE)
     void    DownloadFirmware ();
-
+    static  tNFC_FW_VERSION fw_version;                           /* START_SLSI [S15052703] */
+#endif
 private:
     NfcAdaptation();
     void    signal();

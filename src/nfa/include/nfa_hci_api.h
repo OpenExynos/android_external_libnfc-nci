@@ -68,7 +68,7 @@ typedef UINT8 tNFA_HCI_EVT;
 #define NFA_MAX_HCI_APP_NAME_LEN                0x10    /* Max application name length */
 #define NFA_MAX_HCI_CMD_LEN                     255     /* Max HCI command length */
 #define NFA_MAX_HCI_RSP_LEN                     255     /* Max HCI event length */
-#define NFA_MAX_HCI_EVENT_LEN                   260     /* Max HCI event length */
+#define NFA_MAX_HCI_EVENT_LEN                   276     /* Max HCI event length */
 #define NFA_MAX_HCI_DATA_LEN                    260     /* Max HCI data length */
 
 /* NFA HCI PIPE states */

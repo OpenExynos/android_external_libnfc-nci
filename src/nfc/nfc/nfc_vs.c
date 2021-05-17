@@ -141,7 +141,61 @@ tNFC_STATUS NFC_SendVsCommand (UINT8          oid,
     return status;
 }
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+/*******************************************************************************
+**
+** Function         NFC_Send_NCI_Command
+**
+** Description      This function is called to send the given NCI command to
+**                      NFCC.
+**
+** Parameters   gid - The group of the NCI command.
+**                      oid - The opcode of the VS command.
+**                  p_data - The parameters for the VS command
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
+tNFC_STATUS NFC_SEC_Send_NCI_Command (UINT8          gid,
+                                      UINT8          oid,
+                                      BT_HDR        *p_data)
+{
+    tNFC_STATUS     status = NFC_STATUS_OK;
+    UINT8           *pp;
 
+    /* Allow NCI command  with 0-length payload */
+    if (p_data == NULL)
+    {
+        p_data = NCI_GET_CMD_BUF (0);
+        if (p_data)
+        {
+            p_data->offset  = NCI_VSC_MSG_HDR_SIZE;
+            p_data->len     = 0;
+        }
+    }
 
+    /* Validate parameters */
+    if ((p_data == NULL) || (p_data->offset < NCI_VSC_MSG_HDR_SIZE) || (p_data->len > NCI_MAX_VSC_SIZE))
+    {
+        NFC_TRACE_ERROR1 ("buffer offset must be >= %d", NCI_VSC_MSG_HDR_SIZE);
+        if (p_data)
+            GKI_freebuf (p_data);
+        return NFC_STATUS_INVALID_PARAM;
+    }
+
+    p_data->event           = BT_EVT_TO_NFC_NCI;
+    p_data->layer_specific  = 0;
+
+    p_data->offset -= NCI_MSG_HDR_SIZE;
+    pp              = (UINT8 *) (p_data + 1) + p_data->offset;
+    NCI_MSG_BLD_HDR0 (pp, NCI_MT_CMD, gid);
+    NCI_MSG_BLD_HDR1 (pp, oid);
+    *pp             = (UINT8) p_data->len;
+    p_data->len    += NCI_MSG_HDR_SIZE;
+    nfc_ncif_check_cmd_queue (p_data);
+    return status;
+}
+/* END [S150123001] */
+#endif
 
 #endif /* NFC_INCLUDED == TRUE */

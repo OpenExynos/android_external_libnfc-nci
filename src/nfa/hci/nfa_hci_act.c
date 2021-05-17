@@ -1313,11 +1313,14 @@ void nfa_hci_handle_admin_gate_cmd (UINT8 *p_data)
             else
             {
                 response = NFA_HCI_ANY_E_NOK;
+#if (NFC_SEC_NOT_OPEN_INCLUDED != TRUE)
+/*	Disable below code because we don't support 0xF0 gate.*/
                 if ((dest_gate >= NFA_HCI_FIRST_PROP_GATE) && (dest_gate <= NFA_HCI_LAST_PROP_GATE))
                 {
                     if (nfa_hciu_alloc_gate (dest_gate, 0))
                         response = nfa_hciu_add_pipe_to_gate (pipe, dest_gate, source_host, source_gate);
                 }
+#endif
             }
         }
         break;
@@ -1475,6 +1478,14 @@ void nfa_hci_handle_admin_gate_rsp (UINT8 *p_data, UINT8 data_len)
 
             if (nfa_hci_cb.b_hci_netwk_reset)
             {
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111813] */
+                if(nfa_hci_cb.dh_need_clear_pipe)
+                {
+                    nfa_hciu_send_clear_all_pipe_cmd ();
+                    nfa_hci_cb.dh_need_clear_pipe = FALSE;
+                    break;
+                }
+#endif
                 nfa_hci_cb.b_hci_netwk_reset = FALSE;
                /* Session ID is reset, Set New session id */
                 memcpy (&nfa_hci_cb.cfg.admin_gate.session_id[NFA_HCI_SESSION_ID_LEN / 2], nfa_hci_cb.cfg.admin_gate.session_id, (NFA_HCI_SESSION_ID_LEN / 2));

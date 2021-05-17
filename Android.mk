@@ -1,4 +1,11 @@
 LOCAL_PATH:= $(call my-dir)
+
+ifeq ($(BOARD_USES_SAMSUNG_NFC), true)
+    LOCAL_PATH:= $(call my-dir)
+    include $(LOCAL_PATH)/Android-sec.mk
+endif
+
+ifeq (0,1)
 NFA := src/nfa
 NFC := src/nfc
 HAL := src/hal
@@ -66,3 +73,4 @@ include $(BUILD_SHARED_LIBRARY)
 
 ######################################
 include $(call all-makefiles-under,$(LOCAL_PATH))
+endif

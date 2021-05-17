@@ -80,6 +80,7 @@ void nfa_sys_event (BT_HDR *p_msg)
     /* get subsystem id from event */
     id = (UINT8) (p_msg->event >> 8);
 
+    NFA_TRACE_EVENT3 ("NFA id: %x, %p, %p", id, nfa_sys_cb.is_reg[id], nfa_sys_cb.reg[id]->evt_hdlr);
     /* verify id and call subsystem event handler */
     if ((id < NFA_ID_MAX) && (nfa_sys_cb.is_reg[id]))
     {

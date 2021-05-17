@@ -202,7 +202,9 @@ tNFA_STATUS NFA_CeConfigureUiccListenTech (tNFA_HANDLE ee_handle,
 #if (NFC_NFCEE_INCLUDED == TRUE)
     tNFA_CE_MSG *p_msg;
 
-    NFA_TRACE_API1 ("NFA_CeConfigureUiccListenTech () ee_handle = 0x%x", ee_handle);
+/* START [S1605170001] - Add debugging message for monitoring listen tech of CE */
+    NFA_TRACE_API2 ("NFA_CeConfigureUiccListenTech () ee_handle = 0x%x, tech_mask = 0x%x", ee_handle, tech_mask);
+/* END [S1605170001] - Add debugging message for monitoring listen tech of CE */
 
     /* If tech_mask is zero, then app is disabling listening for specified uicc */
     if (tech_mask == 0)
@@ -404,12 +406,17 @@ tNFA_STATUS NFA_CeSetIsoDepListenTech (tNFA_TECHNOLOGY_MASK tech_mask)
     tNFA_TECHNOLOGY_MASK    use_mask = (NFA_TECHNOLOGY_MASK_A | NFA_TECHNOLOGY_MASK_B);
 
     NFA_TRACE_API1 ("NFA_CeSetIsoDepListenTech (): 0x%x", tech_mask);
+
+/* START [S1605170002] - Change CE listen tech configuration method for support 0x00 tech*/
+/*
     if (((tech_mask & use_mask) == 0) ||
         ((tech_mask & ~use_mask) != 0) )
     {
         NFA_TRACE_ERROR0 ("NFA_CeSetIsoDepListenTech: Invalid technology mask");
         return (NFA_STATUS_INVALID_PARAM);
     }
+*/
+/* END [S1605170002] - Change CE listen tech configuration method for support 0x00 tech*/
 
     if ((p_msg = (tNFA_CE_MSG *) GKI_getbuf ((UINT16) sizeof(tNFA_CE_MSG))) != NULL)
     {

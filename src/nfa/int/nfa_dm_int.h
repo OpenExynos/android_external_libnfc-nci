@@ -62,7 +62,13 @@ enum
     NFA_DM_API_DEREG_NDEF_HDLR_EVT,
     NFA_DM_API_REG_VSC_EVT,
     NFA_DM_API_SEND_VSC_EVT,
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+    NFA_SEC_DM_API_SEND_NCI_EVT,
+#endif
     NFA_DM_TIMEOUT_DISABLE_EVT,
+/* START [16052901S] - Change listen tech mask values */
+    NFA_DM_API_CHANGE_LISTENING_EVT,
+/* END [16052901S] - Change listen tech mask values */
     NFA_DM_MAX_EVT
 };
 
@@ -115,6 +121,15 @@ typedef struct
     BT_HDR               hdr;
     tNFA_TECHNOLOGY_MASK poll_mask;
 } tNFA_DM_API_ENABLE_POLL;
+
+/* START [16052901S] - Change listen tech mask values */
+/* data type for NFA_DM_API_CHANGE_LISTENING_EVT*/
+typedef struct
+{
+    BT_HDR               hdr;
+    tNFA_TECHNOLOGY_MASK listen_mask;
+} tNFA_DM_API_CHANGE_LISTEN;
+/* END [16052901S] - Change listen tech mask values */
 
 /* data type for NFA_DM_API_SET_P2P_LISTEN_TECH_EVT */
 typedef struct
@@ -197,6 +212,18 @@ typedef struct
     UINT8           *p_cmd_params;
 } tNFA_DM_API_SEND_VSC;
 
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+/* data type for NFA_SEC_DM_API_SEND_NCI_EVT */
+typedef struct
+{
+    BT_HDR          hdr;
+    UINT8           gid;
+    UINT8           oid;
+    UINT8           cmd_params_len;
+    UINT16          pad;    /* add padding to ensure the size is big enough for offset=tNFA_DM_API_SEND_NCI */
+    UINT8           *p_cmd_params;
+} tNFA_SEC_DM_API_SEND_NCI;
+#endif
 
 /* union of all data types */
 typedef union
@@ -222,7 +249,13 @@ typedef union
     tNFA_DM_API_UPDATE_RF_PARAMS    update_rf_params;   /* NFA_DM_API_UPDATE_RF_PARAMS_EVT      */
     tNFA_DM_API_DEACTIVATE          deactivate;         /* NFA_DM_API_DEACTIVATE_EVT            */
     tNFA_DM_API_SEND_VSC            send_vsc;           /* NFA_DM_API_SEND_VSC_EVT              */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+    tNFA_SEC_DM_API_SEND_NCI            send_nci;           /* NFA_SEC_DM_API_SEND_NCI_EVT              */
+#endif
     tNFA_DM_API_REG_VSC             reg_vsc;            /* NFA_DM_API_REG_VSC_EVT               */
+/* START [16052901S] - Change listen tech mask values */
+    tNFA_DM_API_CHANGE_LISTEN       change_listen;      /* NFA_DM_API_CHANGE_LISTENING_EVT        */
+/* END [16052901S] - Change listen tech mask values */
 } tNFA_DM_MSG;
 
 /* DM RF discovery state */
@@ -423,6 +456,10 @@ typedef struct
 #define NFA_DM_FLAGS_LISTEN_DISABLED            0x00001000  /* NFA_DisableListening() is called and engaged                         */
 #define NFA_DM_FLAGS_P2P_PAUSED                 0x00002000  /* NFA_PauseP2p() is called and engaged                         */
 #define NFA_DM_FLAGS_POWER_OFF_SLEEP            0x00008000  /* Power Off Sleep                                                      */
+/* START [16052901S] - Change listen tech mask values */
+#define NFA_DM_FLAGS_LISTEN_CHANGED             0x20000000  /* NFA_ChangeListening() is called and engaged                         */
+/* END [16052901S] - Change listen tech mask values */
+
 /* stored parameters */
 typedef struct
 {
@@ -511,6 +548,9 @@ typedef struct
 
     /* NFCC power mode */
     UINT8                       nfcc_pwr_mode;          /* NFA_DM_PWR_MODE_FULL or NFA_DM_PWR_MODE_OFF_SLEEP */
+/* START [16052901S] - Change listen tech mask values */
+    tNFA_TECHNOLOGY_MASK        listen_mask;
+/* END [16052901S] - Change listen tech mask values */
 } tNFA_DM_CB;
 
 /* Internal function prototypes */
@@ -593,14 +633,25 @@ BOOLEAN nfa_dm_act_select (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_update_rf_params (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_deactivate (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_power_off_sleep (tNFA_DM_MSG *p_data);
+
+/* START [P1604040001] - Support Dual-SIM solution */
+BOOLEAN nfa_dm_act_set_preferred_simslot (UINT16 nPreferredSimSlot);
+/* END [P1604040001] - Support Dual-SIM solution */
+
 BOOLEAN nfa_dm_ndef_reg_hdlr (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_ndef_dereg_hdlr (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_tout (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_reg_vsc (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_send_vsc (tNFA_DM_MSG *p_data);
 UINT16 nfa_dm_act_get_rf_disc_duration ();
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START [S150123001] */
+BOOLEAN nfa_SEC_dm_act_send_nci (tNFA_DM_MSG *p_data);
+#endif
 BOOLEAN nfa_dm_act_disable_timeout (tNFA_DM_MSG *p_data);
 BOOLEAN nfa_dm_act_nfc_cback_data (tNFA_DM_MSG *p_data);
+/* START [16052901S] - Change listen tech mask values */
+BOOLEAN nfa_dm_act_change_listening(tNFA_DM_MSG *p_data);
+/* END [16052901S] - Change listen tech mask values */
 
 void nfa_dm_proc_nfcc_power_mode (UINT8 nfcc_power_mode);
 

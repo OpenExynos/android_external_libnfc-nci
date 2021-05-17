@@ -186,6 +186,13 @@
 #define NFC_BRCM_VS_INCLUDED    TRUE
 #endif
 
+/* Define to TRUE to include not openned LSI Vendor Specific implementation */
+#ifndef NFC_SEC_NOT_OPEN_INCLUDED /* START_SLSI [S14111802] */
+#define NFC_SEC_NOT_OPEN_INCLUDED  FALSE
+#else
+#define NFC_SEC_NOT_OPEN_INCLUDED  TRUE
+#endif
+
 /* Define to TRUE if compling for NFC Reader/Writer Only mode */
 #ifndef NFC_RW_ONLY
 #define NFC_RW_ONLY         FALSE
@@ -250,7 +257,12 @@
 
 /* Maximum time to discover NFCEE */
 #ifndef NFA_EE_DISCV_TIMEOUT_VAL
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111808] */
+#define NFA_EE_DISCV_TIMEOUT_VAL    500
+#define NFA_EE_DISCV_TIMEOUT_VAL_ADD    600
+#else
 #define NFA_EE_DISCV_TIMEOUT_VAL    2000
+#endif
 #endif
 
 /* Number of times reader/writer should attempt to resend a command on failure */
@@ -665,8 +677,25 @@
 
 /* Maximum number of AID entries per target_handle  */
 #ifndef NFA_EE_MAX_AID_ENTRIES
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111802] */
+#define NFA_EE_MAX_AID_ENTRIES      (30)
+#else
 #define NFA_EE_MAX_AID_ENTRIES      (32)
 #endif
+#endif
+
+/* START_SLSI [S14121101] */
+#if (NFC_SEC_NOT_OPEN_INCLUDED == TRUE)
+#define NFA_EE_MAX_AID_CFG_LEN_OVER_LIMIT          (1000)
+#define NFA_EE_MAX_AID_CFG_LEN_UNDER_LIMIT          (900)
+#define NFA_EE_MAX_AID_CFG_LEN_N5P                  (450)
+#define NFA_EE_MAX_AID_CFG_LEN_N5                   (200)
+/* START_SLSI [S15062401] Adjust AID table size*/
+#define NFA_EE_MAX_AID_ENTRIES_N5P                  (50)
+#define NFA_EE_MAX_AID_ENTRIES_N5                   (22)
+/* END_SLSI [S15062401] Adjust AID table size*/
+#endif
+/* END_SLSI [S14121101] */
 
 /* Maximum number of callback functions can be registered through NFA_EeRegister() */
 #ifndef NFA_EE_MAX_CBACKS

@@ -43,7 +43,11 @@ extern "C" {
 #define NCI_VSC_MSG_HDR_SIZE    12  /* NCI header (3) + callback function pointer(8; use 8 to be safe) + HCIT (1 byte) */
 #define NCI_TL_SIZE             2
 
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111805] */
+#define NCI_ISO_DEP_MAX_INFO      254
+#else
 #define NCI_ISO_DEP_MAX_INFO      253   /* Max frame size (256) - Prologue (1) - Epilogue (2) in ISO-DEP, CID and NAD are not used*/
+#endif
 #define NCI_NFC_DEP_MAX_DATA      251   /* Max payload (254) - Protocol Header (3) in NFC-DEP, DID and NAD are not used */
 
 /* NCI Command and Notification Format:
@@ -68,7 +72,7 @@ extern "C" {
 #define NCI_NTF_BIT         0x80     /* the tNFC_VS_EVT is a notification */
 #define NCI_RSP_BIT         0x40     /* the tNFC_VS_EVT is a response     */
 
-/* for internal use only; not from specification */
+/* for inter use only; not from specification */
 /* the following 2 flags are used in layer_specific for fragmentation/reassembly of data packets */
 #define NCI_LS_DATA         0x00
 #define NCI_LS_DATA_PBF     0x01
@@ -413,6 +417,11 @@ typedef UINT8 tNCI_DISCOVERY_TYPE;
 #define NCI_ROUTE_PWR_STATE_ON          0x01        /* The device is on */
 #define NCI_ROUTE_PWR_STATE_SWITCH_OFF  0x02        /* The device is switched off */
 #define NCI_ROUTE_PWR_STATE_BATT_OFF    0x04        /* The device's battery is removed */
+#if(NFC_SEC_NOT_OPEN_INCLUDED == TRUE) /* START_SLSI [S14111806] */
+#define NCI_ROUTE_PWR_STATE_SUB_1       0x08        /* Switched On sub-state 1          */
+#define NCI_ROUTE_PWR_STATE_SUB_2       0x10        /* Switched On sub-state 2          */
+#define NCI_ROUTE_PWR_STATE_SUB_3       0x20        /* Switched On sub-state 3          */
+#endif
 
 #define NCI_NFCEE_TAG_HW_ID             0x00       /* Hardware / Registration Identification  */
 #define NCI_NFCEE_TAG_ATR_BYTES         0x01       /* ATR Bytes  */
